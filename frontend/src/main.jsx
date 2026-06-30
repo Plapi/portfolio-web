@@ -13,6 +13,8 @@ const emptyProject = {
   projectUrl: "",
   githubUrl: "",
   sortOrder: 0,
+  descriptionPlacement: "after",
+  videos: [],
   images: []
 };
 
@@ -106,7 +108,8 @@ function PublicPage() {
 }
 
 function ProjectCard({ project }) {
-  const embedUrl = getYouTubeEmbedUrl(project.videoUrl);
+  const videos = getProjectVideos(project);
+  const description = project.description ? <RichText value={project.description} /> : null;
   const title = project.projectUrl ? (
     <a href={project.projectUrl} target="_blank" rel="noreferrer">{project.name}</a>
   ) : project.name;
@@ -124,7 +127,6 @@ function ProjectCard({ project }) {
             <IconImage value={project.icon} fallback={iconLabel(project.icon)} className="project-icon" />
             <h3>{title}</h3>
           </div>
-          {project.description && <RichText value={project.description} />}
           {project.images.length > 1 && (
             <div className="thumb-row">
               {project.images.slice(1).map((image) => (
@@ -132,20 +134,30 @@ function ProjectCard({ project }) {
               ))}
             </div>
           )}
+          {project.descriptionPlacement === "before" && description}
           <div className="project-links">
             {project.githubUrl && <a href={project.githubUrl} target="_blank" rel="noreferrer">GitHub</a>}
-            {project.videoUrl && !embedUrl && <a href={project.videoUrl} target="_blank" rel="noreferrer">Video</a>}
+            {videos.filter((video) => !video.embedUrl).map((video, index) => (
+              <a key={`${video.videoUrl}-${index}`} href={video.videoUrl} target="_blank" rel="noreferrer">
+                Video {videos.length > 1 ? index + 1 : ""}
+              </a>
+            ))}
           </div>
-          {embedUrl && (
-            <div className="video-embed">
-              <iframe
-                src={embedUrl}
-                title={`${project.name} video`}
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                allowFullScreen
-              />
+          {videos.some((video) => video.embedUrl) && (
+            <div className="video-list">
+              {videos.filter((video) => video.embedUrl).map((video, index) => (
+                <div className="video-embed" style={{ aspectRatio: video.aspectRatio }} key={`${video.embedUrl}-${index}`}>
+                  <iframe
+                    src={video.embedUrl}
+                    title={`${project.name} video ${index + 1}`}
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowFullScreen
+                  />
+                </div>
+              ))}
             </div>
           )}
+          {project.descriptionPlacement !== "before" && description}
         </div>
       </div>
     </article>
@@ -413,11 +425,26 @@ function PositionEditor({ companyId, position, onSavePosition, onDeletePosition,
 function ProjectEditor({ positionId, project, onSave, onDelete }) {
   const [draft, setDraft] = useState(project);
   const imageLines = useMemo(() => draft.images.map((image) => image.imageUrl).join("\n"), [draft.images]);
+  const videoLines = useMemo(() => getProjectVideos(draft).map((video) => `${video.videoUrl} | ${video.aspectRatio}`).join("\n"), [draft]);
 
   function setImageLines(value) {
     setDraft({
       ...draft,
       images: value.split("\n").map((line) => ({ imageUrl: line.trim(), alt: draft.name })).filter((image) => image.imageUrl)
+    });
+  }
+
+  function setVideoLines(value) {
+    setDraft({
+      ...draft,
+      videos: value
+        .split("\n")
+        .map((line) => {
+          const [videoUrl, aspectRatio] = line.split("|").map((part) => part.trim());
+          return { videoUrl, aspectRatio: aspectRatio || "16 / 9" };
+        })
+        .filter((video) => video.videoUrl),
+      videoUrl: ""
     });
   }
 
@@ -432,11 +459,18 @@ function ProjectEditor({ positionId, project, onSave, onDelete }) {
       <div className="form-grid">
         <Field label="Project icon URL" value={draft.icon} onChange={(icon) => setDraft({ ...draft, icon })} />
         <Field label="Project title" value={draft.name} onChange={(name) => setDraft({ ...draft, name })} />
-        <Field label="Video URL" value={draft.videoUrl} onChange={(videoUrl) => setDraft({ ...draft, videoUrl })} />
+        <label>
+          Description placement
+          <select value={draft.descriptionPlacement || "after"} onChange={(event) => setDraft({ ...draft, descriptionPlacement: event.target.value })}>
+            <option value="after">After videos</option>
+            <option value="before">Before videos</option>
+          </select>
+        </label>
         <Field label="Project link" value={draft.projectUrl} onChange={(projectUrl) => setDraft({ ...draft, projectUrl })} />
         <Field label="GitHub URL" value={draft.githubUrl} onChange={(githubUrl) => setDraft({ ...draft, githubUrl })} />
         <Field label="Order" type="number" value={draft.sortOrder} onChange={(sortOrder) => setDraft({ ...draft, sortOrder: Number(sortOrder) })} />
         <Field label="Description (HTML supported)" textarea value={draft.description} onChange={(description) => setDraft({ ...draft, description })} />
+        <Field label="Videos, one per line: YouTube URL | aspect ratio" textarea value={videoLines} onChange={setVideoLines} />
         <Field label="Images, one URL per line" textarea value={imageLines} onChange={setImageLines} />
       </div>
       <div className="editor-footer">
@@ -543,6 +577,25 @@ function getYouTubeEmbedUrl(url) {
   } catch {
     return "";
   }
+}
+
+function getProjectVideos(project) {
+  const list = Array.isArray(project.videos) && project.videos.length > 0
+    ? project.videos
+    : project.videoUrl
+      ? [{ videoUrl: project.videoUrl, aspectRatio: "16 / 9" }]
+      : [];
+
+  return list.map((video) => ({
+    videoUrl: video.videoUrl,
+    aspectRatio: normalizeAspectRatio(video.aspectRatio),
+    embedUrl: getYouTubeEmbedUrl(video.videoUrl)
+  }));
+}
+
+function normalizeAspectRatio(value) {
+  const ratio = String(value || "16 / 9").trim().replace(":", " / ");
+  return /^\d+(\.\d+)?\s*\/\s*\d+(\.\d+)?$/.test(ratio) ? ratio : "16 / 9";
 }
 
 function toRichHtml(value) {

@@ -64,11 +64,22 @@ export function initDb() {
       sort_order INTEGER NOT NULL DEFAULT 0,
       FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
     );
+
+    CREATE TABLE IF NOT EXISTS project_videos (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      project_id INTEGER NOT NULL,
+      video_url TEXT NOT NULL,
+      aspect_ratio TEXT NOT NULL DEFAULT '16 / 9',
+      sort_order INTEGER NOT NULL DEFAULT 0,
+      FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+    );
   `);
 
   ensureColumn("projects", "position_id", "INTEGER REFERENCES positions(id) ON DELETE SET NULL");
+  ensureColumn("projects", "description_placement", "TEXT NOT NULL DEFAULT 'after'");
   seedProfile();
   migrateExistingProjects();
+  migrateExistingVideos();
 }
 
 export function getProfile() {
@@ -115,13 +126,20 @@ export function getCompanies() {
     ORDER BY sort_order ASC, id ASC
   `);
 
+  const videoRows = db.prepare(`
+    SELECT * FROM project_videos
+    WHERE project_id = ?
+    ORDER BY sort_order ASC, id ASC
+  `);
+
   return companies.map((company) => ({
     ...company,
     positions: positionRows.all(company.id).map((position) => ({
       ...mapPosition(position),
       projects: projectRows.all(position.id).map((project) => ({
         ...mapProject(project),
-        images: imageRows.all(project.id).map(mapImage)
+        images: imageRows.all(project.id).map(mapImage),
+        videos: videoRows.all(project.id).map(mapVideo)
       }))
     }))
   }));
@@ -205,11 +223,12 @@ export function createProject(positionId, input) {
 
   const write = db.transaction(() => {
     const result = db.prepare(`
-      INSERT INTO projects (position_id, icon, name, description, video_url, project_url, github_url, sort_order)
-      VALUES (@positionId, @icon, @name, @description, @videoUrl, @projectUrl, @githubUrl, @sortOrder)
+      INSERT INTO projects (position_id, icon, name, description, description_placement, video_url, project_url, github_url, sort_order)
+      VALUES (@positionId, @icon, @name, @description, @descriptionPlacement, @videoUrl, @projectUrl, @githubUrl, @sortOrder)
     `).run(data);
 
     replaceImages(result.lastInsertRowid, data.images);
+    replaceVideos(result.lastInsertRowid, data.videos);
     return getProjectById(result.lastInsertRowid);
   });
 
@@ -228,6 +247,7 @@ export function updateProject(id, input) {
           icon = @icon,
           name = @name,
           description = @description,
+          description_placement = @descriptionPlacement,
           video_url = @videoUrl,
           project_url = @projectUrl,
           github_url = @githubUrl,
@@ -237,6 +257,7 @@ export function updateProject(id, input) {
     `).run({ ...data, id });
 
     replaceImages(id, data.images);
+    replaceVideos(id, data.videos);
     return getProjectById(id);
   });
 
@@ -324,6 +345,28 @@ function migrateExistingProjects() {
   seed();
 }
 
+function migrateExistingVideos() {
+  const rows = db.prepare(`
+    SELECT id, video_url AS videoUrl
+    FROM projects
+    WHERE video_url != ''
+      AND NOT EXISTS (
+        SELECT 1 FROM project_videos WHERE project_videos.project_id = projects.id
+      )
+  `).all();
+
+  const insert = db.prepare(`
+    INSERT INTO project_videos (project_id, video_url, aspect_ratio, sort_order)
+    VALUES (?, ?, '16 / 9', 1)
+  `);
+
+  const write = db.transaction(() => {
+    rows.forEach((row) => insert.run(row.id, row.videoUrl));
+  });
+
+  write();
+}
+
 function ensureColumn(table, column, definition) {
   const columns = db.prepare(`PRAGMA table_info(${table})`).all();
   if (!columns.some((item) => item.name === column)) {
@@ -344,6 +387,23 @@ function replaceImages(projectId, images) {
       projectId,
       imageUrl: image.imageUrl,
       alt: image.alt || "",
+      sortOrder: index + 1
+    }));
+}
+
+function replaceVideos(projectId, videos) {
+  db.prepare("DELETE FROM project_videos WHERE project_id = ?").run(projectId);
+  const insert = db.prepare(`
+    INSERT INTO project_videos (project_id, video_url, aspect_ratio, sort_order)
+    VALUES (@projectId, @videoUrl, @aspectRatio, @sortOrder)
+  `);
+
+  videos
+    .filter((video) => video.videoUrl)
+    .forEach((video, index) => insert.run({
+      projectId,
+      videoUrl: video.videoUrl,
+      aspectRatio: video.aspectRatio || "16 / 9",
       sortOrder: index + 1
     }));
 }
@@ -413,16 +473,26 @@ function cleanPosition(input) {
 }
 
 function cleanProject(input) {
+  const videos = Array.isArray(input.videos) ? input.videos.map(cleanVideo) : [];
+  const legacyVideoUrl = text(input.videoUrl);
+  const normalizedVideos = videos.length > 0
+    ? videos
+    : legacyVideoUrl
+      ? [{ videoUrl: legacyVideoUrl, aspectRatio: "16 / 9" }]
+      : [];
+
   return {
     positionId: number(input.positionId),
     icon: text(input.icon),
     name: text(input.name) || "Untitled project",
     description: text(input.description),
-    videoUrl: text(input.videoUrl),
+    descriptionPlacement: ["before", "after"].includes(text(input.descriptionPlacement)) ? text(input.descriptionPlacement) : "after",
+    videoUrl: normalizedVideos[0]?.videoUrl || legacyVideoUrl,
     projectUrl: text(input.projectUrl),
     githubUrl: text(input.githubUrl),
     sortOrder: number(input.sortOrder),
-    images: Array.isArray(input.images) ? input.images.map(cleanImage) : []
+    images: Array.isArray(input.images) ? input.images.map(cleanImage) : [],
+    videos: normalizedVideos
   };
 }
 
@@ -435,6 +505,23 @@ function cleanImage(input) {
     imageUrl: text(input?.imageUrl),
     alt: text(input?.alt)
   };
+}
+
+function cleanVideo(input) {
+  if (typeof input === "string") {
+    const [url, aspectRatio] = input.split("|").map((part) => text(part));
+    return { videoUrl: url, aspectRatio: cleanAspectRatio(aspectRatio) };
+  }
+
+  return {
+    videoUrl: text(input?.videoUrl),
+    aspectRatio: cleanAspectRatio(input?.aspectRatio)
+  };
+}
+
+function cleanAspectRatio(value) {
+  const ratio = text(value) || "16 / 9";
+  return /^\d+(\.\d+)?\s*(\/|:)\s*\d+(\.\d+)?$/.test(ratio) ? ratio.replace(":", " / ") : "16 / 9";
 }
 
 function text(value) {
@@ -484,9 +571,19 @@ function mapProject(row) {
     icon: row.icon,
     name: row.name,
     description: row.description,
+    descriptionPlacement: row.description_placement || "after",
     videoUrl: row.video_url,
     projectUrl: row.project_url,
     githubUrl: row.github_url,
+    sortOrder: row.sort_order
+  };
+}
+
+function mapVideo(row) {
+  return {
+    id: row.id,
+    videoUrl: row.video_url,
+    aspectRatio: row.aspect_ratio,
     sortOrder: row.sort_order
   };
 }
