@@ -215,10 +215,11 @@ h3 {
 }
 
 .company-icon {
-  width: 56px;
-  height: 42px;
-  border-radius: 14px;
-  object-fit: contain;
+  width: 48px;
+  height: 48px;
+  border-radius: 9px;
+  object-fit: cover;
+  display: block;
   font-weight: 900;
 }
 
@@ -316,10 +317,11 @@ h3 {
 }
 
 .project-icon {
-  width: 44px;
-  height: 34px;
-  border-radius: 13px;
-  object-fit: contain;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  object-fit: cover;
+  display: block;
   font-weight: 800;
   flex: 0 0 auto;
 }
