@@ -1,12 +1,16 @@
 import "dotenv/config";
 import express from "express";
 import {
+  createCompany,
+  createPosition,
   createProject,
+  deleteCompany,
+  deletePosition,
   deleteProject,
-  getProfile,
-  getProjects,
+  getContent,
   initDb,
-  reorderProjects,
+  updateCompany,
+  updatePosition,
   updateProfile,
   updateProject
 } from "./db.js";
@@ -35,10 +39,7 @@ app.get("/api/health", (req, res) => {
 });
 
 app.get("/api/public/profile", (req, res) => {
-  res.json({
-    profile: getProfile(),
-    projects: getProjects()
-  });
+  res.json(getContent());
 });
 
 app.use("/api/admin", (req, res, next) => {
@@ -49,29 +50,57 @@ app.use("/api/admin", (req, res, next) => {
 });
 
 app.get("/api/admin/content", (req, res) => {
-  res.json({
-    profile: getProfile(),
-    projects: getProjects()
-  });
+  res.json(getContent());
 });
 
 app.put("/api/admin/profile", (req, res) => {
   res.json({ profile: updateProfile(req.body) });
 });
 
-app.post("/api/admin/projects", (req, res) => {
-  res.status(201).json({ project: createProject(req.body) });
+app.post("/api/admin/companies", (req, res) => {
+  res.status(201).json({ company: createCompany(req.body), content: getContent() });
 });
 
-app.put("/api/admin/projects/reorder", (req, res) => {
-  const projectIds = Array.isArray(req.body.projectIds) ? req.body.projectIds.map(Number) : [];
-  res.json({ projects: reorderProjects(projectIds) });
+app.put("/api/admin/companies/:id", (req, res) => {
+  const company = updateCompany(Number(req.params.id), req.body);
+  if (!company) return res.status(404).json({ error: "Company not found" });
+  res.json({ company, content: getContent() });
+});
+
+app.delete("/api/admin/companies/:id", (req, res) => {
+  const deleted = deleteCompany(Number(req.params.id));
+  if (!deleted) return res.status(404).json({ error: "Company not found" });
+  res.status(204).send();
+});
+
+app.post("/api/admin/companies/:companyId/positions", (req, res) => {
+  const position = createPosition(Number(req.params.companyId), req.body);
+  if (!position) return res.status(404).json({ error: "Company not found" });
+  res.status(201).json({ position, content: getContent() });
+});
+
+app.put("/api/admin/positions/:id", (req, res) => {
+  const position = updatePosition(Number(req.params.id), req.body);
+  if (!position) return res.status(404).json({ error: "Position not found" });
+  res.json({ position, content: getContent() });
+});
+
+app.delete("/api/admin/positions/:id", (req, res) => {
+  const deleted = deletePosition(Number(req.params.id));
+  if (!deleted) return res.status(404).json({ error: "Position not found" });
+  res.status(204).send();
+});
+
+app.post("/api/admin/positions/:positionId/projects", (req, res) => {
+  const project = createProject(Number(req.params.positionId), req.body);
+  if (!project) return res.status(404).json({ error: "Position not found" });
+  res.status(201).json({ project, content: getContent() });
 });
 
 app.put("/api/admin/projects/:id", (req, res) => {
   const project = updateProject(Number(req.params.id), req.body);
   if (!project) return res.status(404).json({ error: "Project not found" });
-  res.json({ project });
+  res.json({ project, content: getContent() });
 });
 
 app.delete("/api/admin/projects/:id", (req, res) => {

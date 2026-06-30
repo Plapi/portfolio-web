@@ -178,6 +178,94 @@ h3 {
   gap: 18px;
 }
 
+.project-grid.compact {
+  grid-template-columns: 1fr;
+  gap: 14px;
+}
+
+.experience-list {
+  display: grid;
+  gap: 18px;
+}
+
+.company-card {
+  border: 1px solid #d9ded0;
+  border-radius: 8px;
+  background: #ffffff;
+  overflow: hidden;
+}
+
+.company-head {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+  background: #eef2ea;
+  border-bottom: 1px solid #d9ded0;
+}
+
+.company-head h3 {
+  font-size: clamp(1.45rem, 3vw, 2rem);
+}
+
+.company-head p {
+  margin: 6px 0 0;
+  color: #4d574f;
+}
+
+.company-icon {
+  width: 56px;
+  height: 42px;
+  border-radius: 14px;
+  object-fit: contain;
+  font-weight: 900;
+}
+
+.position-list {
+  display: grid;
+}
+
+.position-block {
+  padding: 20px;
+  border-top: 1px solid #edf0e9;
+}
+
+.position-block:first-child {
+  border-top: 0;
+}
+
+.position-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.position-head h4 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.position-head span {
+  color: #5d6a5e;
+  font-weight: 800;
+  font-size: 0.9rem;
+}
+
+.position-content {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(320px, 1.1fr);
+  gap: 22px;
+  align-items: start;
+}
+
+.position-description p {
+  margin: 0;
+  color: #4d574f;
+}
+
 .project-card {
   border: 1px solid #d9ded0;
   border-radius: 8px;
@@ -211,24 +299,33 @@ h3 {
   padding: 18px;
 }
 
+.project-main {
+  display: grid;
+  gap: 12px;
+}
+
 .project-title-row {
   display: flex;
   align-items: center;
   gap: 10px;
 }
 
+.project-title-row a {
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
+}
+
 .project-icon {
-  width: 34px;
+  width: 44px;
   height: 34px;
-  border-radius: 8px;
-  background: #e9eee5;
-  display: grid;
-  place-items: center;
+  border-radius: 13px;
+  object-fit: contain;
   font-weight: 800;
   flex: 0 0 auto;
 }
 
-.project-body p {
+.project-main p {
+  margin: 0;
   color: #4d574f;
 }
 
@@ -245,6 +342,21 @@ h3 {
   object-fit: cover;
   border-radius: 6px;
   border: 1px solid #d9ded0;
+}
+
+.video-embed {
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border: 1px solid #d9ded0;
+  border-radius: 8px;
+  background: #0f1712;
+}
+
+.video-embed iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
 }
 
 .project-links a {
@@ -382,6 +494,25 @@ textarea {
   padding: 16px;
 }
 
+.company-editor {
+  background: #fbfcfa;
+}
+
+.nested-editor-list {
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.nested-editor {
+  background: #ffffff;
+  border-color: #e1e6da;
+}
+
+.project-editor {
+  background: #f8faf6;
+}
+
 .editor-footer {
   justify-content: flex-end;
   margin-top: 14px;
@@ -428,6 +559,12 @@ textarea {
   }
 
   .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .company-head,
+  .position-head,
+  .position-content {
     grid-template-columns: 1fr;
   }
 }
