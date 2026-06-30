@@ -56,8 +56,7 @@ function PublicPage() {
       </section>
 
       <section className="section-head">
-        <p className="eyebrow">Experience</p>
-        <h2>Companies, roles, and shipped work</h2>
+        <h2>Experience</h2>
       </section>
 
       <section className="experience-list">
