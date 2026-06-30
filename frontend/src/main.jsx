@@ -3,7 +3,7 @@ import { createRoot } from "react-dom/client";
 import "./styles.css";
 
 const API_BASE = import.meta.env.VITE_API_BASE || "http://127.0.0.1:4000";
-const emptyCompany = { icon: "", name: "New company", description: "", sortOrder: 0 };
+const emptyCompany = { icon: "", name: "New company", description: "", layout: "experience", sortOrder: 0 };
 const emptyPosition = { title: "New role", period: "", description: "", sortOrder: 0 };
 const emptyProject = {
   icon: "",
@@ -72,39 +72,93 @@ function PublicPage() {
               </div>
             </header>
 
-            <div className="position-list">
-              {company.positions.map((position) => (
-                <section className="position-block" key={position.id}>
-                  <div className="position-projects">
-                    {position.projects.length > 0 && (
-                      <div className="project-grid compact">
-                        {position.projects.map((project) => (
-                          <ProjectCard key={project.id} project={project} />
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="position-head">
-                    <div>
-                      <h4>{position.title}</h4>
-                      {position.period && <span>{position.period}</span>}
-                    </div>
-                  </div>
-
-                  <div className="position-content">
-                    <div className="position-description">
-                      {position.description && <RichText value={position.description} />}
-                      <PositionSideVideos projects={position.projects} />
-                    </div>
-                  </div>
-                </section>
-              ))}
-            </div>
+            {company.layout === "projects" ? (
+              <PersonalProjectsList company={company} />
+            ) : (
+              <ExperiencePositionList company={company} />
+            )}
           </article>
         ))}
       </section>
     </main>
+  );
+}
+
+function ExperiencePositionList({ company }) {
+  return (
+    <div className="position-list">
+      {company.positions.map((position) => (
+        <section className="position-block" key={position.id}>
+          <div className="position-projects">
+            {position.projects.length > 0 && (
+              <div className="project-grid compact">
+                {position.projects.map((project) => (
+                  <ProjectCard key={project.id} project={project} />
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="position-head">
+            <div>
+              <h4>{position.title}</h4>
+              {position.period && <span>{position.period}</span>}
+            </div>
+          </div>
+
+          <div className="position-content">
+            <div className="position-description">
+              {position.description && <RichText value={position.description} />}
+              <PositionSideVideos projects={position.projects} />
+            </div>
+          </div>
+        </section>
+      ))}
+    </div>
+  );
+}
+
+function PersonalProjectsList({ company }) {
+  const projects = company.positions.flatMap((position) => position.projects);
+
+  return (
+    <div className="personal-project-list">
+      {projects.map((project) => (
+        <PersonalProjectRow project={project} key={project.id} />
+      ))}
+    </div>
+  );
+}
+
+function PersonalProjectRow({ project }) {
+  const videos = getProjectVideos(project);
+  const title = project.projectUrl ? (
+    <a href={project.projectUrl} target="_blank" rel="noreferrer">{project.name}</a>
+  ) : project.name;
+
+  return (
+    <article className="personal-project-row">
+      <div className="personal-project-copy">
+        <div className="project-title-row">
+          <IconImage value={project.icon} fallback={iconLabel(project.icon)} className="project-icon" />
+          <h3>{title}</h3>
+        </div>
+        {project.description && <RichText value={project.description} />}
+        <div className="project-links">
+          {project.githubUrl && <a href={project.githubUrl} target="_blank" rel="noreferrer">GitHub</a>}
+        </div>
+      </div>
+      <div className="personal-project-videos">
+        {videos.filter((video) => video.embedUrl).map((video, index) => (
+          <VideoEmbed video={video} title={`${project.name} video ${index + 1}`} key={`${video.embedUrl}-${index}`} />
+        ))}
+        {videos.filter((video) => !video.embedUrl).map((video, index) => (
+          <a className="fallback-video-link" href={video.videoUrl} target="_blank" rel="noreferrer" key={`${video.videoUrl}-${index}`}>
+            Video {index + 1}
+          </a>
+        ))}
+      </div>
+    </article>
   );
 }
 
@@ -398,6 +452,13 @@ function CompanyEditor({ company, onSaveCompany, onDeleteCompany, onSavePosition
       <div className="form-grid">
         <Field label="Company icon URL" value={draft.icon} onChange={(icon) => setDraft({ ...draft, icon })} />
         <Field label="Company name" value={draft.name} onChange={(name) => setDraft({ ...draft, name })} />
+        <label>
+          Company layout
+          <select value={draft.layout || "experience"} onChange={(event) => setDraft({ ...draft, layout: event.target.value })}>
+            <option value="experience">Experience</option>
+            <option value="projects">Projects only</option>
+          </select>
+        </label>
         <Field label="Order" type="number" value={draft.sortOrder} onChange={(sortOrder) => setDraft({ ...draft, sortOrder: Number(sortOrder) })} />
         <Field label="Company description" textarea value={draft.description} onChange={(description) => setDraft({ ...draft, description })} />
       </div>

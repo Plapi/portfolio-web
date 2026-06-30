@@ -232,6 +232,33 @@ h3 {
   display: grid;
 }
 
+.personal-project-list {
+  display: grid;
+}
+
+.personal-project-row {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(280px, 1.1fr);
+  gap: 24px;
+  padding: 20px;
+  border-top: 1px solid #edf0e9;
+}
+
+.personal-project-row:first-child {
+  border-top: 0;
+}
+
+.personal-project-copy {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+}
+
+.personal-project-videos {
+  display: grid;
+  gap: 12px;
+}
+
 .position-block {
   padding: 20px;
   border-top: 1px solid #edf0e9;
@@ -642,5 +669,9 @@ textarea {
     float: none;
     width: 100%;
     margin: 0 0 18px;
+  }
+
+  .personal-project-row {
+    grid-template-columns: 1fr;
   }
 }

@@ -26,6 +26,7 @@ export function initDb() {
       icon TEXT NOT NULL DEFAULT '',
       name TEXT NOT NULL,
       description TEXT NOT NULL DEFAULT '',
+      layout TEXT NOT NULL DEFAULT 'experience',
       sort_order INTEGER NOT NULL DEFAULT 0,
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
       updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -79,6 +80,7 @@ export function initDb() {
   ensureColumn("projects", "position_id", "INTEGER REFERENCES positions(id) ON DELETE SET NULL");
   ensureColumn("projects", "description_placement", "TEXT NOT NULL DEFAULT 'after'");
   ensureColumn("project_videos", "placement", "TEXT NOT NULL DEFAULT 'project'");
+  ensureColumn("companies", "layout", "TEXT NOT NULL DEFAULT 'experience'");
   seedProfile();
   migrateExistingProjects();
   migrateExistingVideos();
@@ -151,8 +153,8 @@ export function createCompany(input) {
   const nextOrder = nextSortOrder("companies");
   const data = cleanCompany({ ...input, sortOrder: input.sortOrder ?? nextOrder });
   const result = db.prepare(`
-    INSERT INTO companies (icon, name, description, sort_order)
-    VALUES (@icon, @name, @description, @sortOrder)
+    INSERT INTO companies (icon, name, description, layout, sort_order)
+    VALUES (@icon, @name, @description, @layout, @sortOrder)
   `).run(data);
 
   return getCompanyById(result.lastInsertRowid);
@@ -168,6 +170,7 @@ export function updateCompany(id, input) {
     SET icon = @icon,
         name = @name,
         description = @description,
+        layout = @layout,
         sort_order = @sortOrder,
         updated_at = CURRENT_TIMESTAMP
     WHERE id = @id
@@ -457,10 +460,13 @@ function cleanProfile(input) {
 }
 
 function cleanCompany(input) {
+  const layout = text(input.layout).toLowerCase();
+
   return {
     icon: text(input.icon),
     name: text(input.name) || "Untitled company",
     description: text(input.description),
+    layout: layout === "projects" ? "projects" : "experience",
     sortOrder: number(input.sortOrder)
   };
 }
@@ -558,6 +564,7 @@ function mapCompany(row) {
     icon: row.icon,
     name: row.name,
     description: row.description,
+    layout: row.layout || "experience",
     sortOrder: row.sort_order
   };
 }
