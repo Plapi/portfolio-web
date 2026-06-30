@@ -36,7 +36,10 @@ function PublicPage() {
           <img src={profile.avatar} alt="" className="avatar" />
         </div>
         <div className="hero-copy">
-          <p className="eyebrow">{profile.title}</p>
+          <div className="role-badge">
+            <img src="/assets/unity.png" alt="" className="role-icon" />
+            <span>{profile.title}</span>
+          </div>
           <h1>{profile.name}</h1>
           <p className="summary">{profile.summary}</p>
           <div className="hero-actions">
