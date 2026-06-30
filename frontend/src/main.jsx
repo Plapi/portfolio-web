@@ -95,6 +95,7 @@ function PublicPage() {
                   <div className="position-content">
                     <div className="position-description">
                       {position.description && <RichText value={position.description} />}
+                      <PositionSideVideos projects={position.projects} />
                     </div>
                   </div>
                 </section>
@@ -108,7 +109,7 @@ function PublicPage() {
 }
 
 function ProjectCard({ project }) {
-  const videos = getProjectVideos(project);
+  const videos = getProjectVideos(project).filter((video) => video.placement !== "left");
   const description = project.description ? <RichText value={project.description} /> : null;
   const title = project.projectUrl ? (
     <a href={project.projectUrl} target="_blank" rel="noreferrer">{project.name}</a>
@@ -146,14 +147,7 @@ function ProjectCard({ project }) {
           {videos.some((video) => video.embedUrl) && (
             <div className="video-list">
               {videos.filter((video) => video.embedUrl).map((video, index) => (
-                <div className="video-embed" style={{ aspectRatio: video.aspectRatio }} key={`${video.embedUrl}-${index}`}>
-                  <iframe
-                    src={video.embedUrl}
-                    title={`${project.name} video ${index + 1}`}
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                    allowFullScreen
-                  />
-                </div>
+                <VideoEmbed video={video} title={`${project.name} video ${index + 1}`} key={`${video.embedUrl}-${index}`} />
               ))}
             </div>
           )}
@@ -161,6 +155,43 @@ function ProjectCard({ project }) {
         </div>
       </div>
     </article>
+  );
+}
+
+function PositionSideVideos({ projects }) {
+  const videos = projects.flatMap((project) => (
+    getProjectVideos(project)
+      .filter((video) => video.placement === "left")
+      .map((video, index) => ({ ...video, title: `${project.name} detail video ${index + 1}` }))
+  ));
+
+  if (videos.length === 0) return null;
+
+  return (
+    <div className="position-video-list">
+      {videos.map((video, index) => (
+        video.embedUrl ? (
+          <VideoEmbed video={video} title={video.title} key={`${video.embedUrl}-${index}`} />
+        ) : (
+          <a className="fallback-video-link" href={video.videoUrl} target="_blank" rel="noreferrer" key={`${video.videoUrl}-${index}`}>
+            Video {index + 1}
+          </a>
+        )
+      ))}
+    </div>
+  );
+}
+
+function VideoEmbed({ video, title }) {
+  return (
+    <div className="video-embed" style={{ aspectRatio: video.aspectRatio }}>
+      <iframe
+        src={video.embedUrl}
+        title={title}
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+        allowFullScreen
+      />
+    </div>
   );
 }
 
@@ -425,7 +456,7 @@ function PositionEditor({ companyId, position, onSavePosition, onDeletePosition,
 function ProjectEditor({ positionId, project, onSave, onDelete }) {
   const [draft, setDraft] = useState(project);
   const imageLines = useMemo(() => draft.images.map((image) => image.imageUrl).join("\n"), [draft.images]);
-  const videoLines = useMemo(() => getProjectVideos(draft).map((video) => `${video.videoUrl} | ${video.aspectRatio}`).join("\n"), [draft]);
+  const videoLines = useMemo(() => getProjectVideos(draft).map((video) => `${video.videoUrl} | ${video.aspectRatio} | ${video.placement}`).join("\n"), [draft]);
 
   function setImageLines(value) {
     setDraft({
@@ -440,8 +471,8 @@ function ProjectEditor({ positionId, project, onSave, onDelete }) {
       videos: value
         .split("\n")
         .map((line) => {
-          const [videoUrl, aspectRatio] = line.split("|").map((part) => part.trim());
-          return { videoUrl, aspectRatio: aspectRatio || "16 / 9" };
+          const [videoUrl, aspectRatio, placement] = line.split("|").map((part) => part.trim());
+          return { videoUrl, aspectRatio: aspectRatio || "16 / 9", placement: placement || "project" };
         })
         .filter((video) => video.videoUrl),
       videoUrl: ""
@@ -470,7 +501,7 @@ function ProjectEditor({ positionId, project, onSave, onDelete }) {
         <Field label="GitHub URL" value={draft.githubUrl} onChange={(githubUrl) => setDraft({ ...draft, githubUrl })} />
         <Field label="Order" type="number" value={draft.sortOrder} onChange={(sortOrder) => setDraft({ ...draft, sortOrder: Number(sortOrder) })} />
         <Field label="Description (HTML supported)" textarea value={draft.description} onChange={(description) => setDraft({ ...draft, description })} />
-        <Field label="Videos, one per line: YouTube URL | aspect ratio" textarea value={videoLines} onChange={setVideoLines} />
+        <Field label="Videos, one per line: YouTube URL | aspect ratio | placement(project/left)" textarea value={videoLines} onChange={setVideoLines} />
         <Field label="Images, one URL per line" textarea value={imageLines} onChange={setImageLines} />
       </div>
       <div className="editor-footer">
@@ -589,6 +620,7 @@ function getProjectVideos(project) {
   return list.map((video) => ({
     videoUrl: video.videoUrl,
     aspectRatio: normalizeAspectRatio(video.aspectRatio),
+    placement: normalizeVideoPlacement(video.placement),
     embedUrl: getYouTubeEmbedUrl(video.videoUrl)
   }));
 }
@@ -596,6 +628,11 @@ function getProjectVideos(project) {
 function normalizeAspectRatio(value) {
   const ratio = String(value || "16 / 9").trim().replace(":", " / ");
   return /^\d+(\.\d+)?\s*\/\s*\d+(\.\d+)?$/.test(ratio) ? ratio : "16 / 9";
+}
+
+function normalizeVideoPlacement(value) {
+  const placement = String(value || "project").trim().toLowerCase();
+  return ["left", "details", "position"].includes(placement) ? "left" : "project";
 }
 
 function toRichHtml(value) {

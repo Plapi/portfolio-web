@@ -70,6 +70,7 @@ export function initDb() {
       project_id INTEGER NOT NULL,
       video_url TEXT NOT NULL,
       aspect_ratio TEXT NOT NULL DEFAULT '16 / 9',
+      placement TEXT NOT NULL DEFAULT 'project',
       sort_order INTEGER NOT NULL DEFAULT 0,
       FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
     );
@@ -77,6 +78,7 @@ export function initDb() {
 
   ensureColumn("projects", "position_id", "INTEGER REFERENCES positions(id) ON DELETE SET NULL");
   ensureColumn("projects", "description_placement", "TEXT NOT NULL DEFAULT 'after'");
+  ensureColumn("project_videos", "placement", "TEXT NOT NULL DEFAULT 'project'");
   seedProfile();
   migrateExistingProjects();
   migrateExistingVideos();
@@ -394,8 +396,8 @@ function replaceImages(projectId, images) {
 function replaceVideos(projectId, videos) {
   db.prepare("DELETE FROM project_videos WHERE project_id = ?").run(projectId);
   const insert = db.prepare(`
-    INSERT INTO project_videos (project_id, video_url, aspect_ratio, sort_order)
-    VALUES (@projectId, @videoUrl, @aspectRatio, @sortOrder)
+    INSERT INTO project_videos (project_id, video_url, aspect_ratio, placement, sort_order)
+    VALUES (@projectId, @videoUrl, @aspectRatio, @placement, @sortOrder)
   `);
 
   videos
@@ -404,6 +406,7 @@ function replaceVideos(projectId, videos) {
       projectId,
       videoUrl: video.videoUrl,
       aspectRatio: video.aspectRatio || "16 / 9",
+      placement: video.placement || "project",
       sortOrder: index + 1
     }));
 }
@@ -509,19 +512,25 @@ function cleanImage(input) {
 
 function cleanVideo(input) {
   if (typeof input === "string") {
-    const [url, aspectRatio] = input.split("|").map((part) => text(part));
-    return { videoUrl: url, aspectRatio: cleanAspectRatio(aspectRatio) };
+    const [url, aspectRatio, placement] = input.split("|").map((part) => text(part));
+    return { videoUrl: url, aspectRatio: cleanAspectRatio(aspectRatio), placement: cleanVideoPlacement(placement) };
   }
 
   return {
     videoUrl: text(input?.videoUrl),
-    aspectRatio: cleanAspectRatio(input?.aspectRatio)
+    aspectRatio: cleanAspectRatio(input?.aspectRatio),
+    placement: cleanVideoPlacement(input?.placement)
   };
 }
 
 function cleanAspectRatio(value) {
   const ratio = text(value) || "16 / 9";
   return /^\d+(\.\d+)?\s*(\/|:)\s*\d+(\.\d+)?$/.test(ratio) ? ratio.replace(":", " / ") : "16 / 9";
+}
+
+function cleanVideoPlacement(value) {
+  const placement = text(value).toLowerCase();
+  return ["left", "details", "position"].includes(placement) ? "left" : "project";
 }
 
 function text(value) {
@@ -584,6 +593,7 @@ function mapVideo(row) {
     id: row.id,
     videoUrl: row.video_url,
     aspectRatio: row.aspect_ratio,
+    placement: row.placement || "project",
     sortOrder: row.sort_order
   };
 }
