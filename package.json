@@ -1,0 +1,24 @@
+{
+  "name": "personal-portfolio",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node scripts/start.mjs",
+    "dev": "node scripts/start.mjs",
+    "backend": "node backend/server.js",
+    "frontend": "vite --host 127.0.0.1",
+    "build": "vite build",
+    "preview": "vite preview --host 127.0.0.1"
+  },
+  "dependencies": {
+    "@vitejs/plugin-react": "^4.3.4",
+    "better-sqlite3": "^11.8.1",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "vite": "^6.0.7",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {}
+}
