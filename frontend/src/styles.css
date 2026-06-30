@@ -254,10 +254,23 @@ h3 {
 }
 
 .position-content {
-  display: grid;
-  grid-template-columns: minmax(0, 0.9fr) minmax(320px, 1.1fr);
-  gap: 22px;
-  align-items: start;
+  display: block;
+}
+
+.position-block::after {
+  content: "";
+  display: block;
+  clear: both;
+}
+
+.position-projects {
+  float: right;
+  width: calc(50% - 14px);
+  margin: 0 0 18px 28px;
+}
+
+.position-description {
+  max-width: none;
 }
 
 .rich-text {
@@ -604,8 +617,13 @@ textarea {
   }
 
   .company-head,
-  .position-head,
-  .position-content {
+  .position-head {
     grid-template-columns: 1fr;
+  }
+
+  .position-projects {
+    float: none;
+    width: 100%;
+    margin: 0 0 18px;
   }
 }

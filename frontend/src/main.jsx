@@ -74,6 +74,16 @@ function PublicPage() {
             <div className="position-list">
               {company.positions.map((position) => (
                 <section className="position-block" key={position.id}>
+                  <div className="position-projects">
+                    {position.projects.length > 0 && (
+                      <div className="project-grid compact">
+                        {position.projects.map((project) => (
+                          <ProjectCard key={project.id} project={project} />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
                   <div className="position-head">
                     <div>
                       <h4>{position.title}</h4>
@@ -84,15 +94,6 @@ function PublicPage() {
                   <div className="position-content">
                     <div className="position-description">
                       {position.description && <RichText value={position.description} />}
-                    </div>
-                    <div className="position-projects">
-                      {position.projects.length > 0 && (
-                        <div className="project-grid compact">
-                          {position.projects.map((project) => (
-                            <ProjectCard key={project.id} project={project} />
-                          ))}
-                        </div>
-                      )}
                     </div>
                   </div>
                 </section>
