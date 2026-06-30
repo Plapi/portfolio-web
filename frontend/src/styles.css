@@ -237,10 +237,6 @@ h3 {
 }
 
 .position-head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 14px;
   margin-bottom: 14px;
 }
 
@@ -250,6 +246,8 @@ h3 {
 }
 
 .position-head span {
+  display: inline-block;
+  margin-top: 4px;
   color: #5d6a5e;
   font-weight: 800;
   font-size: 0.9rem;
@@ -262,16 +260,62 @@ h3 {
   align-items: start;
 }
 
-.position-description p {
-  margin: 0;
+.rich-text {
   color: #4d574f;
 }
 
+.rich-text p,
+.rich-text ul,
+.rich-text ol {
+  margin: 0 0 14px;
+}
+
+.rich-text p:last-child,
+.rich-text ul:last-child,
+.rich-text ol:last-child {
+  margin-bottom: 0;
+}
+
+.rich-text h3,
+.rich-text h4,
+.rich-text h5 {
+  margin: 18px 0 8px;
+  color: #17201a;
+  line-height: 1.2;
+}
+
+.rich-text h3:first-child,
+.rich-text h4:first-child,
+.rich-text h5:first-child {
+  margin-top: 0;
+}
+
+.rich-text ul,
+.rich-text ol {
+  padding-left: 20px;
+}
+
+.rich-text li {
+  margin: 6px 0;
+}
+
+.rich-text small {
+  font-size: 0.88em;
+}
+
+.rich-text big {
+  font-size: 1.12em;
+}
+
+.rich-text a {
+  color: #315c42;
+  font-weight: 800;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
+}
+
 .project-card {
-  border: 1px solid #d9ded0;
-  border-radius: 8px;
-  overflow: hidden;
-  background: #ffffff;
+  overflow: visible;
 }
 
 .project-media {
@@ -297,7 +341,7 @@ h3 {
 }
 
 .project-body {
-  padding: 18px;
+  padding: 0;
 }
 
 .project-main {
@@ -324,11 +368,6 @@ h3 {
   display: block;
   font-weight: 800;
   flex: 0 0 auto;
-}
-
-.project-main p {
-  margin: 0;
-  color: #4d574f;
 }
 
 .thumb-row {

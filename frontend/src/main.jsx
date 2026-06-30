@@ -75,13 +75,15 @@ function PublicPage() {
               {company.positions.map((position) => (
                 <section className="position-block" key={position.id}>
                   <div className="position-head">
-                    <h4>{position.title}</h4>
-                    {position.period && <span>{position.period}</span>}
+                    <div>
+                      <h4>{position.title}</h4>
+                      {position.period && <span>{position.period}</span>}
+                    </div>
                   </div>
 
                   <div className="position-content">
                     <div className="position-description">
-                      {position.description && <p>{position.description}</p>}
+                      {position.description && <RichText value={position.description} />}
                     </div>
                     <div className="position-projects">
                       {position.projects.length > 0 && (
@@ -122,7 +124,7 @@ function ProjectCard({ project }) {
             <IconImage value={project.icon} fallback={iconLabel(project.icon)} className="project-icon" />
             <h3>{title}</h3>
           </div>
-          {project.description && <p>{project.description}</p>}
+          {project.description && <RichText value={project.description} />}
           {project.images.length > 1 && (
             <div className="thumb-row">
               {project.images.slice(1).map((image) => (
@@ -393,7 +395,7 @@ function PositionEditor({ companyId, position, onSavePosition, onDeletePosition,
         <Field label="Role title" value={draft.title} onChange={(title) => setDraft({ ...draft, title })} />
         <Field label="Period" value={draft.period} onChange={(period) => setDraft({ ...draft, period })} />
         <Field label="Order" type="number" value={draft.sortOrder} onChange={(sortOrder) => setDraft({ ...draft, sortOrder: Number(sortOrder) })} />
-        <Field label="Role description" textarea value={draft.description} onChange={(description) => setDraft({ ...draft, description })} />
+        <Field label="Role description (HTML supported)" textarea value={draft.description} onChange={(description) => setDraft({ ...draft, description })} />
       </div>
       <div className="editor-footer">
         <button className="button primary" onClick={() => onSavePosition(companyId, draft)}>Save role</button>
@@ -434,7 +436,7 @@ function ProjectEditor({ positionId, project, onSave, onDelete }) {
         <Field label="Project link" value={draft.projectUrl} onChange={(projectUrl) => setDraft({ ...draft, projectUrl })} />
         <Field label="GitHub URL" value={draft.githubUrl} onChange={(githubUrl) => setDraft({ ...draft, githubUrl })} />
         <Field label="Order" type="number" value={draft.sortOrder} onChange={(sortOrder) => setDraft({ ...draft, sortOrder: Number(sortOrder) })} />
-        <Field label="Description" textarea value={draft.description} onChange={(description) => setDraft({ ...draft, description })} />
+        <Field label="Description (HTML supported)" textarea value={draft.description} onChange={(description) => setDraft({ ...draft, description })} />
         <Field label="Images, one URL per line" textarea value={imageLines} onChange={setImageLines} />
       </div>
       <div className="editor-footer">
@@ -463,6 +465,10 @@ function IconImage({ value, fallback, className }) {
   }
 
   return <span className={className}>{fallback || iconLabel(value)}</span>;
+}
+
+function RichText({ value }) {
+  return <div className="rich-text" dangerouslySetInnerHTML={{ __html: toRichHtml(value) }} />;
 }
 
 function usePortfolioData() {
@@ -537,6 +543,46 @@ function getYouTubeEmbedUrl(url) {
   } catch {
     return "";
   }
+}
+
+function toRichHtml(value) {
+  const source = String(value || "").trim();
+  if (!source) return "";
+
+  const escaped = escapeHtml(source);
+  const withInlineFormatting = escaped
+    .replace(/&amp;apos;/g, "&#039;")
+    .replace(/&amp;nbsp;/g, "&nbsp;")
+    .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+    .replace(/__(.*?)__/g, "<strong>$1</strong>");
+
+  const blocks = withInlineFormatting.split(/\n{2,}/).map((block) => {
+    const trimmed = block.trim();
+    if (!trimmed) return "";
+    if (/^&lt;\/?[a-z][\s\S]*&gt;$/i.test(trimmed)) {
+      return unescapeAllowedHtml(trimmed);
+    }
+    return `<p>${trimmed.replace(/\n/g, "<br>")}</p>`;
+  });
+
+  return blocks.join("");
+}
+
+function escapeHtml(value) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function unescapeAllowedHtml(value) {
+  return value
+    .replace(/&lt;br\s*\/?&gt;/gi, "<br>")
+    .replace(/&lt;(\/?)(p|strong|b|em|i|u|small|big|h3|h4|h5|ul|ol|li)\s*\/?&gt;/gi, "<$1$2>")
+    .replace(/&lt;a(?:.*?)href=&quot;(https?:\/\/[^&]+)&quot;(?:.*?)&gt;/gi, '<a href="$1" target="_blank" rel="noreferrer">')
+    .replace(/&lt;\/a&gt;/gi, "</a>");
 }
 
 function flash(setter, message) {
